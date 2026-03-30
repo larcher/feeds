@@ -12,10 +12,13 @@ import (
 
 // private wrapper around the RssFeed which gives us the <rss>..</rss> xml
 type RssFeedXml struct {
-	XMLName          xml.Name `xml:"rss"`
-	Version          string   `xml:"version,attr"`
-	ContentNamespace string   `xml:"xmlns:content,attr"`
-	Channel          *RssFeed
+	XMLName             xml.Name `xml:"rss"`
+	Version             string   `xml:"version,attr"`
+	ContentNamespace    string   `xml:"xmlns:content,attr"`
+	DublinCoreNamespace string   `xml:"xmlns:dc,attr"`
+	MediaNamespace      string   `xml:"xmlns:media,attr"`
+	AtomNamespace       string   `xml:"xmlns:atom,attr"`
+	Channel             *RssFeed
 }
 
 type RssContent struct {
@@ -65,18 +68,24 @@ type RssFeed struct {
 }
 
 type RssItem struct {
-	XMLName     xml.Name `xml:"item"`
-	Title       string   `xml:"title"`       // required
-	Link        string   `xml:"link"`        // required
-	Description string   `xml:"description"` // required
-	Content     *RssContent
-	Author      string `xml:"author,omitempty"`
-	Category    string `xml:"category,omitempty"`
-	Comments    string `xml:"comments,omitempty"`
-	Enclosure   *RssEnclosure
-	Guid        *RssGuid // Id used
-	PubDate     string   `xml:"pubDate,omitempty"` // created or updated
-	Source      string   `xml:"source,omitempty"`
+	XMLName          xml.Name `xml:"item"`
+	Title            string   `xml:"title"` // required
+	MediaTitle       string   `xml:"media:title,omitempty"`
+	Link             string   `xml:"link"`        // required
+	Description      string   `xml:"description"` // required
+	MediaDescription string   `xml:"media:description"`
+	Content          *RssContent
+	Author           string        `xml:"author,omitempty"`
+	Category         string        `xml:"category,omitempty"`
+	Comments         string        `xml:"comments,omitempty"`
+	MediaContent     *MediaContent `xml:"media:content,omitempty"`
+	Enclosure        *RssEnclosure
+	Guid             *RssGuid        // Id used
+	PubDate          string          `xml:"pubDate,omitempty"` // created or updated
+	Source           string          `xml:"source,omitempty"`
+	Creator          string          `xml:"dc:creator,omitempty"`
+	MediaThumbnail   *MediaThumbnail `xml:"media:thumbnail,omitempty"`
+	MediaCopyright   string          `xml:"media:copyright,omitempty"`
 }
 
 type RssEnclosure struct {
@@ -85,6 +94,30 @@ type RssEnclosure struct {
 	Url     string   `xml:"url,attr"`
 	Length  string   `xml:"length,attr"`
 	Type    string   `xml:"type,attr"`
+}
+
+type MediaContent struct {
+	Url          string `xml:"url,attr"`
+	FileSize     string `xml:"file_size,attr,omitempty"`
+	Type         string `xml:"type,attr,omitempty"`
+	Medium       string `xml:"medium,attr,omitempty"`
+	IsDefault    string `xml:"isDefault,attr,omitempty"`
+	Expression   string `xml:"expression,attr,omitempty"`
+	Bitrate      string `xml:"bitrate,attr,omitempty"`
+	Framerate    string `xml:"framerate,attr,omitempty"`
+	Samplingrate string `xml:"samplingrate,attr,omitempty"`
+	Channels     string `xml:"channels,attr,omitempty"`
+	Duration     string `xml:"duration,attr,omitempty"`
+	Height       string `xml:"height,attr,omitempty"`
+	Width        string `xml:"width,attr,omitempty"`
+	Lang         string `xml:"lang,attr,omitempty"`
+}
+
+type MediaThumbnail struct {
+	Url    string `xml:"url,attr"`
+	Height string `xml:"height,attr,omitempty"`
+	With   string `xml:"with,attr,omitempty"`
+	Time   string `xml:"time,attr,omitempty"`
 }
 
 type RssGuid struct {
@@ -121,6 +154,13 @@ func newRssItem(i *Item) *RssItem {
 	// Define a closure
 	if i.Enclosure != nil && i.Enclosure.Type != "" && i.Enclosure.Length != "" {
 		item.Enclosure = &RssEnclosure{Url: i.Enclosure.Url, Type: i.Enclosure.Type, Length: i.Enclosure.Length}
+	}
+
+	if i.Enclosure != nil {
+		item.MediaContent = &MediaContent{
+			Url:  i.Enclosure.Url,
+			Type: i.Enclosure.Type,
+		}
 	}
 
 	if i.Author != nil {
@@ -176,8 +216,11 @@ func (r *Rss) FeedXml() interface{} {
 // FeedXml returns an XML-ready object for an RssFeed object
 func (r *RssFeed) FeedXml() interface{} {
 	return &RssFeedXml{
-		Version:          "2.0",
-		Channel:          r,
-		ContentNamespace: "http://purl.org/rss/1.0/modules/content/",
+		Version:             "2.0",
+		Channel:             r,
+		ContentNamespace:    "http://purl.org/rss/1.0/modules/content/",
+		DublinCoreNamespace: "http://purl.org/dc/elements/1.1/",
+		MediaNamespace:      "http://search.yahoo.com/mrss/",
+		AtomNamespace:       "http://www.w3.org/2005/Atom",
 	}
 }
